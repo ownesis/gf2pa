@@ -10,7 +10,7 @@ enum Belt {
     VERTICAL,
     DIAGONAL_R,
     DIAGONAL_L,
-    _MAX_CEINTURE
+    _MAX_BELT
 };
 
 struct Color {
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
     char water = id_decode[11] % 127;
     char is_water = id_decode[10] % 2;
     char belt_char = id_decode[8] % 127;
-    uint8_t belt = id_decode[12] % (_MAX_CEINTURE);
+    uint8_t belt = id_decode[12] % (_MAX_BELT);
 
     if (!isprint(water))
         water += 34;
