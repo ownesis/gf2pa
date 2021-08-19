@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    char *syllabe[255] = {
+    char *syllabe[256] = {
 		[0] = "wew",		[1] = "oru",		[2] = "xed",		[3] = "ifu",		[4] = "zav",
 		[5] = "isi",		[6] = "tif",		[7] = "xeg",		[8] = "ume",		[9] = "ofu",
 		[10] = "yaz",		[11] = "imu",		[12] = "iqi",		[13] = "abi",		[14] = "izo",
@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
 		[240] = "rug",		[241] = "efu",		[242] = "uqa",		[243] = "iyi",		[244] = "ijo",
 		[245] = "eco",		[246] = "veh",		[247] = "yon",		[248] = "hoz",		[249] = "epi",
 		[250] = "pul",		[251] = "bes",		[252] = "ret",		[253] = "iwu",		[254] = "vif",
-
+        [255] = "vow"
     };
 
     char *ptr = argv[1];
