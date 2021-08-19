@@ -4,6 +4,9 @@
 #include <string.h>
 #include <ctype.h>
 
+#define PUTC_COLOR(color, chr) \
+    printf("\x1b[38;5;%dm%c\e[0m", color, chr)
+
 enum Belt {
     NOP,
     HORIZONTAL,
@@ -61,37 +64,63 @@ struct ASCIIArt {
     enum Belt belt;
 };
 
+int rgb_to_x256(struct Color color) {
+    uint8_t r = color.r;
+    uint8_t g = color.g;
+    uint8_t b = color.b;
 
-void print_planet(struct ASCIIArt art, char *part) {
+    // Calculate the nearest 0-based color index at 16 .. 231
+#   define v2ci(v) (v < 48 ? 0 : v < 115 ? 1 : (v - 35) / 40)
+    int ir = v2ci(r), ig = v2ci(g), ib = v2ci(b);   // 0..5 each
+#   define color_index() (36 * ir + 6 * ig + ib)  /* 0..215, lazy evaluation */
+
+    // Calculate the nearest 0-based gray index at 232 .. 255
+    int average = (r + g + b) / 3;
+    int gray_index = average > 238 ? 23 : (average - 3) / 10;  // 0..23
+
+    // Calculate the represented colors back from the index
+    static const int i2cv[6] = {0, 0x5f, 0x87, 0xaf, 0xd7, 0xff};
+    int cr = i2cv[ir], cg = i2cv[ig], cb = i2cv[ib];  // r/g/b, 0..255 each
+    int gv = 8 + 10 * gray_index;  // same value for r/g/b, 0..255
+
+    // Return the one which is nearer to the original input rgb value
+#   define dist_square(A,B,C, a,b,c) ((A-a)*(A-a) + (B-b)*(B-b) + (C-c)*(C-c))
+    int color_err = dist_square(cr, cg, cb, r, g, b);
+    int gray_err  = dist_square(gv, gv, gv, r, g, b);
+
+    return color_err <= gray_err ? 16 + color_index() : 232 + gray_index;
+}
+
+void print_planet(struct ASCIIArt art, char *part, uint8_t color_continent, uint8_t color_belt) {
     char *ptr = part;
 
     for (; *ptr; ptr++) { 
         if (!art.water) {
-            printf("%c", 
-                    (*ptr == '~') 
-                        ? art.continent_char 
-                        : (*ptr == '$') 
-                            ? art.belt_char 
-                            : *ptr
-                  );
+            if (*ptr == '~')
+                PUTC_COLOR(color_continent, art.continent_char); 
+            else if (*ptr == '$') 
+                PUTC_COLOR(color_belt, art.belt_char);
+            else
+                putchar(*ptr);
+
         } else {
             if (*ptr == '~') {
                 if (rand() % 2)
                     putchar(art.water_char);
                 else
-                    putchar(art.continent_char);
+                    PUTC_COLOR(color_continent, art.continent_char);
                 
             }
             else if (*ptr == '$')
-                putchar(art.belt_char);
+                PUTC_COLOR(color_belt, art.belt_char);
                                 
             else 
                 putchar(*ptr);
         }
-    }   
+    }
 }
 
-void print_full_planet(struct ASCIIArt art) {
+void print_full_planet(struct ASCIIArt art, uint8_t color_belt, uint8_t color_continent) {
     char *planet[][7] = {
         [NOP] = {
             "   ,~~~~~~~.\n",
@@ -145,7 +174,7 @@ void print_full_planet(struct ASCIIArt art) {
    };
 
     for (int i = 0; i < 7; i++)
-        print_planet(art, planet[art.belt][i]);
+        print_planet(art, planet[art.belt][i], color_belt, color_continent);
 };
 
 void print_color(struct Color color) {
@@ -246,12 +275,14 @@ int main(int argc, char *argv[]) {
     if (!isprint(belt_char))
         belt_char += 34;
 
+    planet = (struct Planet *)id_decode;
+    
     struct ASCIIArt art = {water, continent, belt_char, is_water, belt};
+    
     puts("```");
-    print_full_planet(art);
+    print_full_planet(art, rgb_to_x256(planet->color), rgb_to_x256(planet->color_belt));
     puts("```");
 
-    planet = (struct Planet *)id_decode;
 
     printf("**Name**: %s%s%s-%02x%02x\n",
             syllabe[planet->name.sylab_a],
